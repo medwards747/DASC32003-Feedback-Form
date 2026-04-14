@@ -88,9 +88,14 @@ if db is None:
 
 # ── Cached/session-cached data fetchers ───────────────────────────────────
 
-@st.cache_data(ttl=300, show_spinner=False)
 def fetch_teams() -> list[Team]:
-    return db.get_teams()  # type: ignore[union-attr]
+    if "_all_teams" not in st.session_state:
+        try:
+            st.session_state["_all_teams"] = db.get_teams()  # type: ignore[union-attr]
+        except RuntimeError as exc:
+            st.error(str(exc))
+            st.session_state["_all_teams"] = []
+    return st.session_state["_all_teams"]
 
 
 def fetch_team_students(team_id: int) -> list[Student]:
