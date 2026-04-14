@@ -172,8 +172,10 @@ class SupabaseManager:
                 "individual_feedback": payload.individual_feedback,
                 **{f"q{i}": payload.scores[f"q{i}"] for i in range(1, 11)},
             }
-            r = self._client.table("submissions").insert(row).execute()
-            return r.data[0] if r.data else {}
+            # returning="minimal" prevents PostgREST from SELECT-ing the row back
+            # after insert, which would be blocked by RLS (no SELECT policy on submissions).
+            self._client.table("submissions").insert(row, returning="minimal").execute()
+            return {}
         except Exception as e:
             raise RuntimeError(f"Failed to insert submission: {e}") from e
 
@@ -212,8 +214,9 @@ class SupabaseManager:
                 "feedback_text": payload.feedback_text,
                 **{f"q{i}": payload.scores[f"q{i}"] for i in range(1, 7)},
             }
-            r = self._client.table("peer_reviews").insert(row).execute()
-            return r.data[0] if r.data else {}
+            # returning="minimal" avoids the post-insert SELECT that RLS would block.
+            self._client.table("peer_reviews").insert(row, returning="minimal").execute()
+            return {}
         except Exception as e:
             raise RuntimeError(f"Failed to insert peer review: {e}") from e
 
